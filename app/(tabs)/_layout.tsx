@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import { Colors } from '@/constants/Colors';
@@ -19,19 +20,48 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
+            <View style={[styles.tabBarButton, focused && styles.tabBarActiveButton]}>
+              <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="trips"
         options={{
-          title: 'Explore',
+          title: 'Trips',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            <View style={[styles.tabBarButton, focused && styles.tabBarActiveButton]}>
+              <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.tabBarButton, focused && styles.tabBarActiveButton]}>
+              <TabBarIcon name={focused ? 'person-circle' : 'person-circle-outline'} color={color} />
+            </View>
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20, 
+    marginTop: 10,
+  },
+  tabBarActiveButton: {
+    backgroundColor: '#b99470', 
+  },
+});
