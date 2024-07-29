@@ -10,8 +10,8 @@ const Step1 = () => {
       resizeMode="cover"
     >
       <View style={{ padding: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Text style={{ color: '#d7d7d7', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
-          Affordable prices at your service
+        <Text style={{ color: '#d7d7d7', fontSize: 30, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
+          Affordable prices at {"\n"} your service
         </Text>
         <Text style={{ color: '#d7d7d7', fontSize: 16, textAlign: 'center', marginBottom: 16 }}>
           Our ride prices are affordable for the service

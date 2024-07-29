@@ -10,11 +10,11 @@ const Step2 = () => {
       resizeMode="cover"
     >
       <View style={{ padding: 16,  borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Text style={{ color: '#d7d7d7', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
+        <Text style={{ color: '#d7d7d7', fontSize: 30, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
           Pickup at your door step
         </Text>
         <Text style={{ color: '#d7d7d7', fontSize: 16, textAlign: 'center', marginBottom: 16 }}>
-          We will pick you up in less time from your exact location
+          We will pick you up in less time from your {"\n"} exact location
         </Text>
         <Link href="/onboarding/step3" asChild>
           <TouchableOpacity style={{ backgroundColor: '#ff7f00', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, width: 300 }}>

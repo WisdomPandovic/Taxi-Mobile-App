@@ -20,8 +20,8 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabBarButton, focused && styles.tabBarActiveButton]}>
-              <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
+            <View style={[styles.tabBarIconContainer, focused && styles.tabBarActiveIconContainer]}>
+              <TabBarIcon name={focused ? 'home' : 'home-outline'} color={focused ? '#fff' : color} />
             </View>
           ),
         }}
@@ -31,8 +31,8 @@ export default function TabLayout() {
         options={{
           title: 'Trips',
           tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabBarButton, focused && styles.tabBarActiveButton]}>
-              <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            <View style={[styles.tabBarIconContainer, focused && styles.tabBarActiveIconContainer]}>
+              <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={focused ? '#fff' : color} />
             </View>
           ),
         }}
@@ -42,8 +42,8 @@ export default function TabLayout() {
         options={{
           title: 'Account',
           tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabBarButton, focused && styles.tabBarActiveButton]}>
-              <TabBarIcon name={focused ? 'person-circle' : 'person-circle-outline'} color={color} />
+            <View style={[styles.tabBarIconContainer, focused && styles.tabBarActiveIconContainer]}>
+              <TabBarIcon name={focused ? 'person-circle' : 'person-circle-outline'} color={focused ? '#fff' : color} />
             </View>
           ),
         }}
@@ -53,7 +53,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBarButton: {
+  tabBarIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 40,
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, 
     marginTop: 10,
   },
-  tabBarActiveButton: {
-    backgroundColor: '#b99470', 
+  tabBarActiveIconContainer: {
+    backgroundColor: '#b99470', // Background color for the active state
   },
 });

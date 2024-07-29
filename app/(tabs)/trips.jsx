@@ -1,40 +1,109 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, Image, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, Image, ActivityIndicator, Alert, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapScreen from '../../components/mapComponent/MapScreen';
 import Modal from 'react-native-modal';
-
-const suggestedRides = [
-  { id: '1', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Economy', amount: '$10' },
-  { id: '2', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Standard', amount: '$15' },
-  { id: '3', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Premium', amount: '$20' },
-  { id: '4', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Luxury', amount: '$30' },
-  { id: '5', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'SUV', amount: '$25' },
-  { id: '6', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Minivan', amount: '$35' },
-  { id: '7', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Electric', amount: '$40' },
-  { id: '8', image: require('../../assets/images/onboarding-img (3).jpg'), class: 'Motorbike', amount: '$5' },
-];
+import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker component
+import axios from 'axios'; // Import Axios
+import API_BASE_URL from '../../config';
 
 const Trips = () => {
   const [pickupLocation, setPickupLocation] = useState('');
   const [dropoffLocation, setDropoffLocation] = useState('');
+  const [pickupCoordinates, setPickupCoordinates] = useState(null);
+  const [dropoffCoordinates, setDropoffCoordinates] = useState(null);
   const [isModalVisible, setModalVisible] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [selectedRide, setSelectedRide] = useState(null); // Renamed to selectedRide
   const [isLoading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [suggestedRides, setSuggestedRides] = useState([]); // State for vehicle data
 
-  const handleBooking = (driver) => {
-    if (pickupLocation && dropoffLocation) {
-      setSelectedDriver(driver);
+  // useEffect(() => {
+  //   const fetchSuggestedRides = async () => {
+  //     try {
+  //       const response = await axios.get(`${API_BASE_URL}/api/vehicles`); // Fetch vehicle data from API
+  //       console.log('Fetched Rides:', response.data);
+  //       setSuggestedRides(response.data); // Set the fetched data
+  //     } catch (error) {
+  //       Alert.alert('Error', 'Unable to fetch vehicle data. Please try again later.');
+  //     }
+  //   };
+
+  //   fetchSuggestedRides(); // Call the function to fetch data
+  // }, []);
+
+  useEffect(() => {
+    const fetchSuggestedRides = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/vehicles`);
+
+        // Extract the base URL from API_BASE_URL
+        const baseUrl = new URL(API_BASE_URL);
+        const baseHost = baseUrl.host;
+
+        const updatedRides = response.data.map(ride => {
+          // Reconstruct the image URL using the base host from API_BASE_URL
+          const updatedImage = ride.image.replace(/http:\/\/\d+\.\d+\.\d+\.\d+:\d+/, `http://${baseHost}`);
+          return {
+            ...ride,
+            image: updatedImage
+          };
+        });
+
+        setSuggestedRides(updatedRides);
+        console.log(updatedRides);
+      } catch (error) {
+        Alert.alert('Error', 'Unable to fetch vehicle data. Please try again later.');
+      }
+    };
+
+    fetchSuggestedRides();
+  }, []);
+
+  const handleBooking = async (ride) => {
+    if (pickupLocation && dropoffLocation && pickupCoordinates && dropoffCoordinates) {
+      setSelectedRide(ride);
       setModalVisible(true);
       setLoading(true);
 
-      // Simulate searching for a driver
-      setTimeout(() => {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/trip`, {
+          user: 'user-id', // Replace with actual user ID
+          pickupLocation,
+          dropoffLocation,
+          pickupCoordinates,
+          dropoffCoordinates,
+          pickupDateTime: {
+            date,
+            time: date.toTimeString().split(' ')[0], // Extract time as HH:MM:SS
+          },
+          vehicle: ride._id, // Send the vehicle ID
+          amount: parseFloat(ride.amount.replace('$', '')),
+          driver: null, // Optional: add driver ID if available
+        });
         setLoading(false);
-        Alert.alert('Driver Found', `Your driver for the ride from ${pickupLocation} to ${dropoffLocation} is on the way!`);
-      }, 3000); // Adjust this timeout as needed
+        Alert.alert('Booking Confirmed', 'Your ride has been booked successfully!');
+      } catch (error) {
+        setLoading(false);
+        Alert.alert('Error', 'Unable to book the ride. Please try again later.');
+      }
     } else {
-      Alert.alert('Error', 'Please enter both pickup and dropoff locations.');
+      Alert.alert('Error', 'Please fill in all details before booking.');
+    }
+  };
+
+  const handleLocationSearch = async (locationType, locationName) => {
+    const coordinates = await fetchPlaceCoordinates(locationName);
+    if (coordinates) {
+      if (locationType === 'pickup') {
+        setPickupCoordinates(coordinates);
+      } else if (locationType === 'dropoff') {
+        setDropoffCoordinates(coordinates);
+      }
+    } else {
+      Alert.alert('Error', 'Unable to fetch location coordinates.');
     }
   };
 
@@ -44,20 +113,41 @@ const Trips = () => {
     Alert.alert('Ride Cancelled', 'Your ride has been cancelled.');
   };
 
+  const handleDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(false);
+    setDate(currentDate);
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    const currentDate = selectedTime || date;
+    setShowTimePicker(false);
+    setDate(currentDate);
+  };
+
   const renderSuggestedRide = ({ item }) => (
-    <TouchableOpacity style={styles.rideContainer} onPress={() => handleBooking(item)}>
-      <Image source={item.image} style={styles.rideImage} />
-      <View style={styles.rideDetails}>
-        <Text style={styles.rideClass}>{item.class}</Text>
-        <Text style={styles.rideAmount}>{item.amount}</Text>
-      </View>
+    <TouchableOpacity
+      style={[
+        styles.rideContainer,
+        selectedRide === item ? styles.selectedRide : null // Apply selectedRide style if the item is selected
+      ]}
+      onPress={() => {
+        setSelectedRide(item); // Set the selected ride
+      }}
+    >
+      <Image source={{ uri: item.image }} style={styles.rideImage} />
+      <Text style={styles.rideName}>{item.name}</Text>
     </TouchableOpacity>
   );
+  
 
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapScreen />
+        <MapScreen
+          pickupCoordinates={pickupCoordinates}
+          dropoffCoordinates={dropoffCoordinates}
+        />
       </View>
       <View style={styles.containerFluid}>
         <View style={styles.header}>
@@ -69,7 +159,10 @@ const Trips = () => {
             style={styles.input}
             placeholder="Enter pickup location"
             value={pickupLocation}
-            onChangeText={setPickupLocation}
+            onChangeText={(text) => {
+              setPickupLocation(text);
+              handleLocationSearch('pickup', text); // Fetch coordinates when text changes
+            }}
           />
         </View>
         <View style={styles.inputContainer}>
@@ -78,18 +171,53 @@ const Trips = () => {
             style={styles.input}
             placeholder="Enter dropoff location"
             value={dropoffLocation}
-            onChangeText={setDropoffLocation}
+            onChangeText={(text) => {
+              setDropoffLocation(text);
+              handleLocationSearch('dropoff', text); // Fetch coordinates when text changes
+            }}
           />
         </View>
+        <View style={styles.dateTimeContainer}>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.dateButton} // Custom style for the date button
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={styles.buttonText}>Select Date</Text>
+        </TouchableOpacity>
+      </View>
+      {showDatePicker && (
+        <DateTimePicker
+          mode="date"
+          value={date}
+          onChange={handleDateChange}
+        />
+      )}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.timeButton} // Custom style for the time button
+          onPress={() => setShowTimePicker(true)}
+        >
+          <Text style={styles.buttonText}>Select Time</Text>
+        </TouchableOpacity>
+      </View>
+      {showTimePicker && (
+        <DateTimePicker
+          mode="time"
+          value={date}
+          onChange={handleTimeChange}
+        />
+      )}
+    </View>
         <FlatList
           data={suggestedRides}
           renderItem={renderSuggestedRide}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id} // Use _id as the key
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.suggestedRidesList}
         />
-        <TouchableOpacity style={styles.bookButton} onPress={() => handleBooking(selectedDriver)}>
+        <TouchableOpacity style={styles.bookButton} onPress={() => handleBooking(selectedRide)}>
           <Text style={styles.bookButtonText}>Book a Ride</Text>
         </TouchableOpacity>
         <Modal isVisible={isModalVisible}>
@@ -109,7 +237,7 @@ const Trips = () => {
                     <Ionicons name="call" size={24} color="#b99470" />
                   </TouchableOpacity>
                   <View style={styles.driverInfoContainer}>
-                    <Image source={require('../../assets/images/onboarding-img (3).jpg')} style={styles.modalImage} />
+                    <Image source={require('../../assets/images/driver.jpg')} style={styles.modalImage} />
                     <View style={styles.ratingContainer}>
                       <Ionicons name="star" size={20} color="gold" />
                     </View>
@@ -117,11 +245,14 @@ const Trips = () => {
                     <Text style={styles.modalText}>
                       OTP: <Text style={styles.otpNumber}>273937</Text>
                     </Text>
-
-                    <Text style={styles.modalText}><Text style={styles.otpNumber}>Swift Desire:</Text> SH 09 GH 3245</Text>
+                    <Text style={styles.modalText}>
+                      <Text style={styles.otpNumber}>Swift Desire:</Text> SH 09 GH 3245
+                    </Text>
                   </View>
+
+
                   <TouchableOpacity style={styles.actionButton}>
-                    <Ionicons name="chatbubbles" size={24} color="#b99470" />
+                    <Ionicons name="close" size={24} color="red" />
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}>
@@ -163,10 +294,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f2f2',
-    borderRadius: 20,
-    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
     marginBottom: 20,
+    paddingVertical: 5,
   },
   icon: {
     marginRight: 10,
@@ -174,19 +305,56 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 40,
-    color: '#000',
+    fontSize: 16,
+  },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  buttonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  dateButton: {
+    backgroundColor: '#3498db', 
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  timeButton: {
+    backgroundColor: '#e74c3c', 
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  suggestedRidesList: {
+    marginVertical: 10,
   },
   rideContainer: {
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 10,
+    padding: 10, // Add padding for better touch area
+    borderRadius: 8, // Add border radius
+    borderWidth: 1, // Border for visibility
+    borderColor: '#ddd', // Default border color
+  },
+  selectedRide: {
+    backgroundColor: '#b99470', // Brown color for selected ride
+    borderColor: '#b99470', // Same color for 
   },
   rideImage: {
     width: 100,
     height: 60,
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 8,
   },
   rideDetails: {
+    marginTop: 5,
     alignItems: 'center',
   },
   rideClass: {
@@ -197,16 +365,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'gray',
   },
-  suggestedRidesList: {
-    marginTop: 20,
-  },
   bookButton: {
-    backgroundColor: '#ff7f00',
-    borderRadius: 10,
-    paddingVertical: 10,
+    backgroundColor: '#6B7769',
+    padding: 15,
+    borderRadius: 5,
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
+    marginVertical: 10,
   },
   bookButtonText: {
     color: '#fff',
@@ -214,68 +378,70 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 10,
+    alignItems: 'center',
+  },
+  loaderContainer: {
     alignItems: 'center',
   },
   modalImage: {
     width: 100,
     height: 100,
-    marginBottom: 20,
     borderRadius: 50,
+    marginBottom: 10,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#000',
   },
   modalText: {
-    fontSize: 18,
-    marginBottom: 10,
-    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#000',
+    textAlign: 'center',
+    marginVertical: 10,
   },
-  otpNumber: {
-    color: '#b99470', 
-    fontWeight: 'normal', 
+  horizontalLine: {
+    height: 1,
+    width: '100%',
+    backgroundColor: '#ccc',
+    marginVertical: 10,
   },
   modalActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    width: '100%',
+    alignItems: 'center',
     marginBottom: 20,
   },
   actionButton: {
-    padding: 10,
-    borderRadius: 20,
+    marginHorizontal: 10,
+  },
+  driverInfoContainer: {
+    alignItems: 'center',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    marginVertical: 10,
+  },
+  otpNumber: {
+    fontWeight: 'bold',
   },
   cancelButton: {
-    backgroundColor: '#ff0000',
+    backgroundColor: '#f00',
+    padding: 10,
     borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    alignItems: 'center',
   },
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
-  loaderContainer: {
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  driverInfoContainer: {
-    alignItems: 'center',
-    position: 'relative',
-  },
-  ratingContainer: {
-    position: 'absolute',
-    top: 70,
-    alignSelf: 'center',
-  },
-  horizontalLine: {
-    borderBottomColor: '#ccc', // Adjust color as needed
-    borderBottomWidth: 1, // Adjust thickness as needed
-    width: '100%',
-    marginBottom: 10, // Adjust spacing as needed
-  },
-  
 });
 
 export default Trips;
+
+
+

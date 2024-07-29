@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
+import API_BASE_URL from '../../config'; 
 
-const StepThree = ({ password, onChangePassword, confirmPassword, onChangeConfirmPassword, onRegister, onSave, onPrevious, isStepComplete }) => {
+const StepThree = ({ email, password, onChangePassword, confirmPassword, onChangeConfirmPassword, onSave, onPrevious, isStepComplete, navigation }) => {
   const [localPassword, setLocalPassword] = useState(password || '');
   const [localConfirmPassword, setLocalConfirmPassword] = useState(confirmPassword || '');
+  const [loading, setLoading] = useState(false);
 
   const handlePasswordChange = (text) => {
     setLocalPassword(text);
@@ -20,14 +22,39 @@ const StepThree = ({ password, onChangePassword, confirmPassword, onChangeConfir
     }
   };
 
-  const handleRegister = () => {
-    if (isStepComplete) {
-      // Proceed to the next step
-      if (onSave) {
-        onSave();
+  const handleRegister = async () => {
+    if (localPassword !== localConfirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/set-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email, 
+          newPassword: localPassword,
+          confirmPassword: localConfirmPassword }),
+      });
+
+      const result = await response.json();
+      setLoading(false);
+
+      if (response.ok) {
+        Alert.alert('Success', 'Password saved successfully');
+        if (onSave) {
+          onSave();
+        }
+        navigation.navigate('signin');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to save password');
       }
-    } else {
-      // Handle incomplete verification code scenario (optional)
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Error', 'Failed to save password');
     }
   };
 
@@ -68,10 +95,10 @@ const StepThree = ({ password, onChangePassword, confirmPassword, onChangeConfir
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: '#B99470' }]}
-          disabled={!isStepComplete}
+          // disabled={loading || !isStepComplete}
           onPress={handleRegister}
         >
-          <Text style={styles.buttonText}>Save</Text>
+          <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
         </TouchableOpacity>
 
         {isStepComplete && <Text style={styles.successText}>Registration Complete!</Text>}

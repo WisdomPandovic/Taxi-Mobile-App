@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Button } from 'react-native';
+import { View } from 'react-native';
 import StepOne from '../../components/signupSteps/step1';
 import StepTwo from '../../components/signupSteps/step2';
 import StepThree from '../../components/signupSteps/step3';
@@ -8,9 +8,8 @@ import { useNavigation } from '@react-navigation/native';
 
 const SignupPage = () => {
   const navigation = useNavigation();
-  // console.log('Navigation object:', navigation);
   const [currentStep, setCurrentStep] = useState(1);
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,6 +18,7 @@ const SignupPage = () => {
   const [city, setCity] = useState('');
   const [street, setStreet] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleNextStep = () => {
     setCurrentStep(currentStep + 1);
@@ -27,9 +27,8 @@ const SignupPage = () => {
   const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
   };
-  
+
   const handleRegister = () => {
-    // Perform registration logic
     console.log('Registration Logic');
   };
 
@@ -41,27 +40,62 @@ const SignupPage = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <StepOne name={name} onChangeName={setName} isStepComplete={!!name} onNext={handleNextStep} />;
+        return (
+          <StepOne
+            email={email}
+            onChangeEmail={setEmail}
+            isStepComplete={!!email}
+            onNext={handleNextStep}
+          />
+        );
       case 2:
-        return <StepTwo verificationCode={verificationCode} onChangeVerificationCode={setVerificationCode} onNext={handleNextStep} onPrevious={handlePreviousStep} isStepComplete={verificationCode.length === 4} />;
+        return (
+          <StepTwo
+            verificationCode={verificationCode}
+            email={email}
+            onChangeVerificationCode={setVerificationCode}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
+            isStepComplete={verificationCode.length === 4}
+          />
+        );
       case 3:
-        return <StepThree password={password} onChangePassword={setPassword} confirmPassword={confirmPassword} onChangeConfirmPassword={setConfirmPassword} onNext={handleNextStep} onPrevious={handlePreviousStep} onRegister={handleRegister} isStepComplete={password.length > 0 && password === confirmPassword} />;
+        return (
+          <StepThree
+            email={email}
+            password={password}
+            onChangePassword={setPassword}
+            confirmPassword={confirmPassword}
+            onChangeConfirmPassword={setConfirmPassword}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
+            onRegister={handleRegister}
+            isStepComplete={password.length > 0 && password === confirmPassword}
+          />
+        );
       case 4:
-        return <StepFour 
-          profileImage={profileImage} 
-          onChangeProfileImage={setProfileImage} 
-          gender={gender} 
-          onChangeGender={setGender} 
-          city={city} 
-          onChangeCity={setCity} 
-          street={street} 
-          onChangeStreet={setStreet} 
-          email={email} 
-          onChangeEmail={setEmail} 
-          onPrevious={handlePreviousStep}
-          onRegister={handleContinue} 
-          isStepComplete={gender && city && street && email && profileImage}
-        />;
+        return (
+          <StepFour
+            email={email}
+            password={password}
+            profileImage={profileImage}
+            onChangeProfileImage={setProfileImage}
+            gender={gender}
+            onChangeGender={setGender}
+            city={city}
+            onChangeCity={setCity}
+            street={street}
+            onChangeStreet={setStreet}
+            phoneNumber={phoneNumber}
+            onChangephoneNumber={setPhoneNumber}
+            username={username}
+            onChangeUsername={setUsername}
+            onChangeEmail={setEmail}
+            onPrevious={handlePreviousStep}
+            onRegister={handleContinue}
+            isStepComplete={gender && city && street && phoneNumber && profileImage && username}
+          />
+        );
       default:
         return null;
     }
@@ -70,15 +104,8 @@ const SignupPage = () => {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white', padding: 20 }}>
       {renderStep()}
-      {/* {currentStep > 1 && (
-        <Button title="Previous" onPress={handlePreviousStep} />
-      )} */}
-      {/* {currentStep === 4 && (
-        <Button title="Continue" onPress={handleContinue} />
-      )} */}
     </View>
   );
 };
 
 export default SignupPage;
-

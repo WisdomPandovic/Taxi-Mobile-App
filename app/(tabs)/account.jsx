@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Image, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import API_BASE_URL from '../../config'; 
 
 const Account = () => {
+    const navigation = useNavigation();
+    const [profileImage, setProfileImage] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -10,20 +17,119 @@ const Account = () => {
     const [address, setAddress] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-    const handleSave = () => {
-        // Add save logic here
-        console.log('Saved:', { username, email, phoneNumber, gender, address });
+    // Fetch user data when the component mounts
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = await AsyncStorage.getItem('jwtToken');
+                if (token) {
+                    const response = await axios.get(`${API_BASE_URL}/api/profile`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    const userData = response.data;
+
+                    // Store userId
+                    await AsyncStorage.setItem('userId', userData._id);
+
+                    setProfileImage(userData.profileImage || '');
+                    setUsername(userData.username || '');
+                    setEmail(userData.email || '');
+                    setPhoneNumber(userData.phoneNumber || '');
+                    setGender(userData.gender || '');
+                    setAddress(userData.city || '');
+                }
+            } catch (error) {
+                console.error('Failed to fetch user data', error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    const handleSave = async () => {
+        try {
+            const token = await AsyncStorage.getItem('jwtToken');
+            const userId = await AsyncStorage.getItem('userId'); // Retrieve user ID from storage
+
+            console.log('Retrieved User ID:', userId);
+
+            if (!userId) {
+                console.error('User ID not found');
+                return;
+            }
+
+            const formData = new FormData();
+
+            formData.append('username', username);
+            formData.append('email', email);
+            formData.append('phoneNumber', phoneNumber);
+            formData.append('gender', gender);
+            formData.append('address', address);
+
+            // if (selectedImage) {
+            //     formData.append('profileImage', {
+            //         uri: selectedImage.uri,
+            //         type: selectedImage.type,
+            //         name: selectedImage.uri.split('/').pop(),
+            //     });
+            // }
+
+            const response = await axios.put(`http://192.168.137.69:3007/api/edit-account/${userId}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (response.data.success) {
+                console.log('Account updated successfully:', response.data.user);
+                // Optionally update the UI or show a success message
+            } else {
+                console.error('Failed to update account:', response.data.msg);
+            }
+        } catch (error) {
+            console.error('Error while updating account:', error);
+        }
     };
+
 
     const handleDelete = () => {
         setShowDeleteModal(true);
     };
 
-    const handleConfirmDelete = () => {
-        // Add delete logic here
-        console.log('Account deleted');
+    const handleConfirmDelete = async () => {
+        try {
+            const token = await AsyncStorage.getItem('jwtToken');
+            const userId = await AsyncStorage.getItem('userId'); // Ensure you have userId stored in AsyncStorage
+    
+            if (!token || !userId) {
+                console.error('User not authenticated or ID not found');
+                return;
+            }
+    
+            const response = await axios.delete(`http://192.168.137.69:3007/api/delete-account/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+    
+            if (response.data.success) {
+                console.log('Account deleted successfully');
+                // Optionally, clear AsyncStorage and navigate to login or welcome screen
+                await AsyncStorage.clear();
+                navigation.navigate('(auth)/signin');
+            } else {
+                console.error('Failed to delete account:', response.data.msg);
+            }
+        } catch (error) {
+            console.error('Error occurred while deleting account:', error);
+        }
+    
         setShowDeleteModal(false);
     };
+    
 
     const handleCancelDelete = () => {
         setShowDeleteModal(false);
@@ -34,19 +140,34 @@ const Account = () => {
         console.log('Logged out');
     };
 
-    const handleImageEdit = () => {
-        // Add image edit logic here
-        console.log('Edit image');
-    };
+    // const handleImageEdit = async () => {
+    //     // Request permissions and pick an image
+    //     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    //     if (status === 'granted') {
+    //         const result = await ImagePicker.launchImageLibraryAsync({
+    //             mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    //             allowsEditing: true,
+    //             aspect: [4, 3],
+    //             quality: 1,
+    //         });
+
+    //         if (!result.canceled) {
+    //             setSelectedImage(result.assets[0]);
+    //             setProfileImage(result.assets[0].uri);
+    //         }
+    //     } else {
+    //         console.error('Permission to access media library was denied');
+    //     }
+    // };
 
     return (
         <View style={styles.container}>
             <View style={styles.imageContainer}>
                 <Image
-                    source={{ uri: 'https://via.placeholder.com/100' }} // Replace with user's image URI
+                    source={{ uri: profileImage || '@/assets/images/onboarding-img (2).jpg' }}// Use user's image URI
                     style={styles.image}
                 />
-                <TouchableOpacity style={styles.cameraIcon} onPress={handleImageEdit}>
+                <TouchableOpacity style={styles.cameraIcon} >
                     <Ionicons name="camera" size={24} color="white" />
                 </TouchableOpacity>
             </View>
@@ -82,7 +203,7 @@ const Account = () => {
                 value={address}
                 onChangeText={setAddress}
             />
-          
+
             <View style={styles.buttonContainer}>
                 <View style={styles.button}>
                     <Button title="Save" onPress={handleSave} color="#b99470" />
@@ -101,7 +222,7 @@ const Account = () => {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Image
-                           source={require('../../assets/images/yes&no.jpg' )} // Replace with custom image URI
+                            source={require('../../assets/images/yes&no.jpg')} // Replace with custom image URI
                             style={styles.modalImage}
                         />
                         <Text style={styles.modalText}>Are you sure you want to delete your account?</Text>
@@ -109,8 +230,8 @@ const Account = () => {
                             <View style={{ width: 300, marginBottom: 10, }}>
                                 <Button title="Cancel" onPress={handleCancelDelete} color="#b99470" />
                             </View>
-                            <View  style={{ width: 300, marginBottom: 10, }}>
-                                <Button title="Delete" onPress={handleConfirmDelete} color="red" style={{ width: 300 }}/>
+                            <View style={{ width: 300, marginBottom: 10, }}>
+                                <Button title="Delete" onPress={handleConfirmDelete} color="red" />
                             </View>
                         </View>
                     </View>
@@ -190,14 +311,9 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom:10,
-        // width: '100%',
-    },
-    modalButton: {
-        width: '400', // Adjust as needed
-        marginVertical: 5,
-        
+        marginBottom: 10,
     },
 });
 
 export default Account;
+

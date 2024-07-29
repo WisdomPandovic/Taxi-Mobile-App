@@ -4,7 +4,8 @@ import { Picker } from '@react-native-picker/picker';
 import { AntDesign } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { Link } from 'expo-router';
+import axios from 'axios';
+import API_BASE_URL from '../../config'; 
 
 const StepFour = ({
   profileImage,
@@ -15,20 +16,24 @@ const StepFour = ({
   onChangeCity,
   street,
   onChangeStreet,
-  email,
-  onChangeEmail,
+  PhoneNumber,
+  onChangePhoneNumber,
+  username,
+  onChangeUsername,
   onPrevious,
   onRegister,
-  isStepComplete, 
-  navigation,// Navigation prop
+  isStepComplete,
+  navigation, // Navigation prop
+  email,          // Received email prop
+  password
 }) => {
   const [localProfileImage, setLocalProfileImage] = useState(profileImage || null);
   const [localGender, setLocalGender] = useState(gender || '');
   const [localCity, setLocalCity] = useState(city || '');
   const [localStreet, setLocalStreet] = useState(street || '');
-  const [localEmail, setLocalEmail] = useState(email || '');
-
-  // const navigation = useNavigation()
+  const [localPhoneNumber, setLocalPhoneNumber] = useState(PhoneNumber || '');
+  const [localUsername, setLocalUsername] = useState(username || '');
+  const [stepComplete, setStepComplete] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -81,25 +86,95 @@ const StepFour = ({
     }
   };
 
-  const handleEmailChange = (text) => {
-    setLocalEmail(text);
-    if (onChangeEmail) {
-      onChangeEmail(text);
+  const handlePhoneNumberChange = (text) => {
+    setLocalPhoneNumber(text);
+    if (onChangePhoneNumber) {
+      onChangePhoneNumber(text);
     }
   };
 
-  const handleContinue = () => {
-    if (isStepComplete) {
-      if (onRegister) {
-        onRegister(); // Perform any additional actions if needed
-      }
-      // Navigate to SignInScreen
-      // navigation.navigate("signin");
-        // navigation.navigate('(auth)/signin');
-    } else {
-      // Handle incomplete form scenario (optional)
+  const handleUsernameChange = (text) => {
+    setLocalUsername(text);
+    if (onChangeUsername) {
+      onChangeUsername(text);
     }
   };
+
+  useEffect(() => {
+    const validateForm = () => {
+      if (localPhoneNumber && localGender && localCity && localStreet && localUsername) {
+        setStepComplete(true);
+      } else {
+        setStepComplete(false);
+      }
+    };
+    validateForm();
+  }, [localPhoneNumber, localGender, localCity, localStreet, localUsername]);
+
+  const handleContinue = async () => {
+    console.log('handleContinue called');
+    console.log('Profile Image:', localProfileImage);
+    console.log('Gender:', localGender);
+    console.log('City:', localCity);
+    console.log('Street:', localStreet);
+    console.log('Phone Number:', localPhoneNumber);
+    console.log('Username:', localUsername);
+    console.log('Email:', email); // Log the email for verification
+    console.log('Password:', password); // Log the password for verification
+    console.log('Is Step Complete:', stepComplete);
+
+    if (stepComplete) {
+      console.log('Step is complete, proceeding with profile creation');
+      try {
+        const endpoint = `${API_BASE_URL}/api/complete-profile`;
+
+        const formData = new FormData();
+        formData.append('phoneNumber', localPhoneNumber);
+        formData.append('gender', localGender);
+        formData.append('city', localCity);
+        formData.append('street', localStreet);
+        formData.append('username', localUsername);
+        formData.append('email', email); // Add email to formData
+        formData.append('password', password); // Add password to formData
+
+        if (localProfileImage) {
+          const uriParts = localProfileImage.split('.');
+          const fileType = uriParts[uriParts.length - 1];
+          const uniqueName = `${new Date().getTime()}_${Math.random().toString(36).substring(7)}.${fileType}`;
+          
+          formData.append('profileImage', {
+              uri: localProfileImage,
+              type: `image/${fileType}`,
+              name: uniqueName,
+          });
+      }      
+
+        console.log('Form Data:', formData);
+
+        const response = await axios.post(endpoint, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (response.status === 201) {
+          console.log('Profile created successfully:', response.data);
+          if (onRegister) {
+            onRegister();
+          }
+          navigation.navigate('signin');
+        } else {
+          console.log('Profile creation failed:', response.data);
+        }
+      } catch (error) {
+        console.error('Error during profile creation:', error);
+      }
+    } else {
+      console.log('Form is incomplete');
+    }
+  };
+
+
 
   const handlePrevious = () => {
     if (onPrevious) {
@@ -133,19 +208,28 @@ const StepFour = ({
           </TouchableOpacity>
         </View>
 
+
+
         <View style={styles.container}>
           <View style={styles.formGroup}>
             <TextInput
               style={[styles.input, { borderColor: '#b99470' }]}
-              placeholder="Enter Email"
-              onChangeText={handleEmailChange}
-              value={localEmail}
-              keyboardType="email-address"
+              placeholder="Enter Username"
+              onChangeText={handleUsernameChange}
+              value={localUsername}
             />
           </View>
 
           <View style={styles.formGroup}>
-            {/* <Text style={styles.label}>Gender:</Text> */}
+            <TextInput
+              style={[styles.input, { borderColor: '#b99470' }]}
+              placeholder="Enter Phone Number"
+              onChangeText={handlePhoneNumberChange}
+              value={localPhoneNumber}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
             <View style={[styles.pickerContainer, { borderColor: '#b99470' }]}>
               <Picker
                 selectedValue={localGender}
@@ -180,14 +264,12 @@ const StepFour = ({
 
           <TouchableOpacity
             style={[styles.button, { backgroundColor: '#B99470' }]}
-            disabled={!isStepComplete}
             onPress={handleContinue}
-           
           >
             <Text style={styles.buttonText}>Continue</Text>
           </TouchableOpacity>
 
-          {isStepComplete && <Text style={styles.successText}>Profile Setup Complete!</Text>}
+          {stepComplete && <Text style={styles.successText}>Profile Setup Complete!</Text>}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -207,6 +289,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 20,
+    textTransform: 'uppercase'
   },
   profileImageContainer: {
     justifyContent: 'center',
@@ -265,7 +348,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
     marginTop: 40,
     width: 300,
   },
