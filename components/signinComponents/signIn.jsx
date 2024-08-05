@@ -5,6 +5,7 @@ import { Link } from 'expo-router';
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import jwtDecode from 'jwt-decode';
 import API_BASE_URL from '../../config'; 
 
 const CustomTextInput = ({ label, value, onChangeText, placeholder, keyboardType, secureTextEntry, autoCapitalize }) => (
@@ -55,6 +56,10 @@ const SignIn = ({ navigation }) => {
       if (response.status === 200 && response.data.success) {
         // Store the JWT token in AsyncStorage
         await AsyncStorage.setItem('jwtToken', response.data.token);
+
+        // Decode the token to get the userId
+        // const decodedToken = jwtDecode(token);
+        // const userId = decodedToken.id;
 
         Toast.show({
           type: 'success',

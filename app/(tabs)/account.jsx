@@ -6,6 +6,8 @@ import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import API_BASE_URL from '../../config'; 
+import SideMenu from '../../components/SideMenuComponent/SideMenu'; 
+import Toast from 'react-native-toast-message';
 
 const Account = () => {
     const navigation = useNavigation();
@@ -16,6 +18,7 @@ const Account = () => {
     const [gender, setGender] = useState('');
     const [address, setAddress] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isMenuVisible, setIsMenuVisible] = useState(false);
 
     // Fetch user data when the component mounts
     useEffect(() => {
@@ -28,6 +31,7 @@ const Account = () => {
                             Authorization: `Bearer ${token}`,
                         },
                     });
+                    console.log(response.data)
                     const userData = response.data;
 
                     // Store userId
@@ -76,7 +80,7 @@ const Account = () => {
             //     });
             // }
 
-            const response = await axios.put(`http://192.168.137.69:3007/api/edit-account/${userId}`, formData, {
+            const response = await axios.put(`${API_BASE_URL}/api/edit-account/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`,
@@ -84,12 +88,30 @@ const Account = () => {
             });
 
             if (response.data.success) {
+                Toast.show({
+                    type: 'success',
+                    position: 'top',
+                    text1: 'Success',
+                    text2: 'Account updated successfully!',
+                });
                 console.log('Account updated successfully:', response.data.user);
                 // Optionally update the UI or show a success message
             } else {
+                Toast.show({
+                    type: 'error',
+                    position: 'top',
+                    text1: 'Error',
+                    text2: `Failed to update account: ${response.data.msg}`,
+                });
                 console.error('Failed to update account:', response.data.msg);
             }
         } catch (error) {
+            Toast.show({
+                type: 'error',
+                position: 'top',
+                text1: 'Error',
+                text2: 'Error while updating account.',
+            });
             console.error('Error while updating account:', error);
         }
     };
@@ -108,22 +130,40 @@ const Account = () => {
                 console.error('User not authenticated or ID not found');
                 return;
             }
-    
-            const response = await axios.delete(`http://192.168.137.69:3007/api/delete-account/${userId}`, {
+          
+            const response = await axios.delete(`  ${API_BASE_URL}/api/delete-account/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
     
             if (response.data.success) {
+                Toast.show({
+                    type: 'success',
+                    position: 'top',
+                    text1: 'Success',
+                    text2: 'Account deleted successfully!',
+                });
                 console.log('Account deleted successfully');
                 // Optionally, clear AsyncStorage and navigate to login or welcome screen
                 await AsyncStorage.clear();
                 navigation.navigate('(auth)/signin');
             } else {
+                Toast.show({
+                    type: 'error',
+                    position: 'top',
+                    text1: 'Error',
+                    text2: `Failed to delete account: ${response.data.msg}`,
+                });
                 console.error('Failed to delete account:', response.data.msg);
             }
         } catch (error) {
+            Toast.show({
+                type: 'error',
+                position: 'top',
+                text1: 'Error',
+                text2: 'Error occurred while deleting account.',
+            });
             console.error('Error occurred while deleting account:', error);
         }
     
@@ -162,9 +202,15 @@ const Account = () => {
 
     return (
         <View style={styles.container}>
+             <TouchableOpacity
+                    style={styles.hamburgerButton}
+                    onPress={() => setIsMenuVisible(true)}
+                >
+                    <Ionicons name="menu" size={30} color="black" />
+                </TouchableOpacity>
             <View style={styles.imageContainer}>
                 <Image
-                    source={{ uri: profileImage || '@/assets/images/onboarding-img (2).jpg' }}// Use user's image URI
+                    source={{ uri: profileImage || '@/assets/images/onboarding-img (2).jpg' }}
                     style={styles.image}
                 />
                 <TouchableOpacity style={styles.cameraIcon} >
@@ -183,6 +229,7 @@ const Account = () => {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
+                editable={false}
             />
             <TextInput
                 style={[styles.input, { borderColor: '#b99470' }]}
@@ -237,6 +284,8 @@ const Account = () => {
                     </View>
                 </View>
             </Modal>
+            <SideMenu isVisible={isMenuVisible} onClose={() => setIsMenuVisible(false)} />
+            <Toast />
         </View>
     );
 };
@@ -312,6 +361,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 10,
+    },
+    hamburgerButton: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        backgroundColor: 'white',
+        padding: 10,
+        borderRadius: 30,
+        elevation: 5, // Adds shadow to the button
     },
 });
 

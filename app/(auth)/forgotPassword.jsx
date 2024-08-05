@@ -30,7 +30,7 @@ const ForgotPassword = () => {
 
   const handleContinue = () => {
     console.log('Navigating to account page...');
-    navigation.navigate('(tabs)/account'); 
+    // navigation.navigate('(tabs)/account'); 
   };
 
   const renderStep = () => {

@@ -6,6 +6,7 @@ import Modal from 'react-native-modal';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker component
 import axios from 'axios'; // Import Axios
 import API_BASE_URL from '../../config';
+import SideMenu from '../../components/SideMenuComponent/SideMenu'; 
 
 const Trips = () => {
   const [pickupLocation, setPickupLocation] = useState('');
@@ -19,6 +20,7 @@ const Trips = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const [suggestedRides, setSuggestedRides] = useState([]); // State for vehicle data
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   // useEffect(() => {
   //   const fetchSuggestedRides = async () => {
@@ -148,6 +150,12 @@ const Trips = () => {
           pickupCoordinates={pickupCoordinates}
           dropoffCoordinates={dropoffCoordinates}
         />
+         <TouchableOpacity
+                    style={styles.hamburgerButton}
+                    onPress={() => setIsMenuVisible(true)}
+                >
+                    <Ionicons name="menu" size={30} color="black" />
+                </TouchableOpacity>
       </View>
       <View style={styles.containerFluid}>
         <View style={styles.header}>
@@ -263,6 +271,7 @@ const Trips = () => {
           </View>
         </Modal>
       </View>
+      <SideMenu isVisible={isMenuVisible} onClose={() => setIsMenuVisible(false)} />
     </View>
   );
 };
@@ -439,6 +448,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  hamburgerButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 30,
+    elevation: 5, // Adds shadow to the button
+},
 });
 
 export default Trips;
